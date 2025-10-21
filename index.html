@@ -162,7 +162,7 @@
           </div>
         </div>
         <div style="text-align:right">
-          <div id="bestDisplay" class="qmeta" aria-live="polite"></div>
+          <!-- best display removed per request -->
         </div>
       </header>
 
@@ -180,7 +180,7 @@
               You get immediate feedback for each question and a performance summary when finished.
             </div>
             <button id="startBtn" class="start-btn" aria-label="Start Quiz">Start Quiz</button>
-            <div id="introBest" class="highscore" aria-live="polite"></div>
+            <!-- intro best removed per request -->
             <div style="margin-top:8px;color:var(--muted);font-size:13px;">Tip: press 1–4 to choose an answer, press Enter to continue.</div>
           </div>
         </div>
@@ -225,7 +225,7 @@
             <div style="margin-top:6px;color:#223246">You answered <strong id="correctCount">0</strong> / 20 correctly.</div>
             <div style="margin-top:6px;"><span class="rank-badge" id="rankLabel">Zama Explorer</span></div>
             <div id="elapsedDisplay" style="margin-top:6px;color:var(--muted);font-size:13px;"></div>
-            <div id="bestResult" style="margin-top:6px;color:var(--muted);font-size:13px;"></div>
+            <!-- bestResult removed per request -->
           </div>
 
           <!-- Score image canvas / controls (smaller image) -->
@@ -302,10 +302,7 @@ const qcounter = document.getElementById('qcounter');
 const feedbackEl = document.getElementById('feedback');
 const timeEl = document.getElementById('time');
 const countdownEl = document.getElementById('countdown');
-const bestDisplay = document.getElementById('bestDisplay');
-const introBest = document.getElementById('introBest');
 const elapsedDisplay = document.getElementById('elapsedDisplay');
-const bestResult = document.getElementById('bestResult');
 
 const scoreCanvas = document.getElementById('scoreCanvas');
 const downloadImgBtn = document.getElementById('downloadImg');
@@ -314,7 +311,9 @@ let startTime = null, elapsedTimer = null;
 let questionTimer = null, questionTimeLeft = TIME_PER_QUESTION;
 let autoAdvanceTimer = null;
 
-/* High score (localStorage) */
+/* High score functions left (still save to localStorage), but we DO NOT display them.
+   This keeps backend behavior but removes the visible "Your best" / "Best" text as requested.
+*/
 const LS_KEY = 'zama_quiz_best';
 function loadBest(){
   try{
@@ -352,18 +351,6 @@ function stopTimer(){
   timeEl.innerText = '00:00';
   return total;
 }
-
-/* initial best display */
-(function showBest(){
-  const b = loadBest();
-  if (b){
-    bestDisplay.textContent = `Best: ${b.points} pts · ${b.pct}% · ${b.time}`;
-    introBest.textContent = `Your best: ${b.points} pts — ${b.pct}% in ${b.time}`;
-  } else {
-    bestDisplay.textContent = '';
-    introBest.textContent = '';
-  }
-})();
 
 /* Question timer helpers */
 function startQuestionTimer(){
@@ -545,17 +532,13 @@ function finishQuiz(){
   rankLabelEl.innerText = rank;
   renderGauge(pct);
 
-  // save best result if better
+  // save best result if better (kept, but not displayed)
   const best = loadBest();
   const cur = { points, pct, time: elapsed };
   if (!best || (points > best.points) || (points === best.points && elapsedMs < parseTime(best.time))){
     saveBest(cur);
-    bestResult.textContent = 'New best score! 🎉';
-  } else {
-    bestResult.textContent = '';
+    // no visible "New best" text shown per your request
   }
-  // update best displays
-  showBestNow();
 
   // draw score image on canvas (bell curve with marker)
   drawScoreImage({iq, pct, rank, points, elapsed});
@@ -567,19 +550,6 @@ function parseTime(mmss){
   const parts = mmss.split(':').map(Number);
   if (parts.length!==2) return Infinity;
   return (parts[0]*60 + parts[1]) * 1000;
-}
-
-function showBestNow(){
-  const b = loadBest();
-  if (b){
-    bestDisplay.textContent = `Best: ${b.points} pts · ${b.pct}% · ${b.time}`;
-    introBest.textContent = `Your best: ${b.points} pts — ${b.pct}% in ${b.time}`;
-    bestResult.textContent = `Best: ${b.points} pts · ${b.pct}% · ${b.time}`;
-  } else {
-    bestDisplay.textContent = '';
-    introBest.textContent = '';
-    bestResult.textContent = '';
-  }
 }
 
 /* render speedometer arc */
@@ -624,7 +594,7 @@ function describeArc(cx,cy,r,startAngle,endAngle){
 }
 
 /* Score image: draw bell curve and IQ marker on canvas.
-   Smaller canvas size now (720x320) so image is not too big.
+   Smaller canvas size (720x320) so image is not too big.
 */
 function drawScoreImage({iq, pct, rank, points, elapsed}){
   if (!scoreCanvas) return;
@@ -634,9 +604,9 @@ function drawScoreImage({iq, pct, rank, points, elapsed}){
 
   // overall padding and areas
   const pad = 28;
-  const headerH = 80;
-  const graphTop = headerH + 10;
-  const graphH = h - graphTop - 80;
+  const headerH = 70;
+  const graphTop = headerH + 8;
+  const graphH = h - graphTop - 70;
   const graphX = pad;
   const graphW = w - pad*2;
 
@@ -658,21 +628,21 @@ function drawScoreImage({iq, pct, rank, points, elapsed}){
   ctx.fillStyle = '#111827';
   ctx.font = '700 16px Inter, Arial';
   ctx.textAlign = 'left';
-  ctx.fillText('Zama Protocol IQ Result', pad, 32);
+  ctx.fillText('Zama Protocol IQ Result', pad, 30);
 
   // IQ big number
   ctx.fillStyle = '#111827';
   ctx.font = '700 48px Inter, Arial';
   ctx.textAlign = 'left';
-  ctx.fillText(iq, pad, 94);
+  ctx.fillText(iq, pad, 90);
 
   ctx.font = '700 16px Inter, Arial';
   ctx.fillStyle = '#374151';
-  ctx.fillText(`${pct}%`, pad + 80, 92);
+  ctx.fillText(`${pct}%`, pad + 80, 88);
 
   ctx.font = '600 13px Inter, Arial';
   ctx.fillStyle = '#6b7280';
-  ctx.fillText(`Points: ${points} pts • Time: ${elapsed}`, pad, 118);
+  ctx.fillText(`Points: ${points} pts • Time: ${elapsed}`, pad, 116);
 
   // Prepare bell curve path
   const samples = 200;
@@ -816,7 +786,7 @@ function roundRect(ctx, x, y, w, h, r, fill, stroke){
 /* Share on X (Twitter) button behavior (X-only):
    - Opens the X compose window in a new tab.
    - Then opens the generated image in a new tab so the user can download/upload it to X manually.
-   - Use x.com intent URL (works with twitter.com as well).
+   - Uses x.com intent URL (falls back to twitter.com if needed).
 */
 shareBtn.addEventListener('click', ()=>{
   if (!scoreCanvas) return;
@@ -826,19 +796,28 @@ shareBtn.addEventListener('click', ()=>{
     const pct = document.getElementById('iqPct').innerText;
     const text = encodeURIComponent(`I scored ${iq} IQ (${pct}) on the Zama Protocol Quiz! Check your score and try it: ${window.location.href}`);
 
-    // Open X compose first (use x.com intent path)
-    const xIntent = `https://x.com/intent/tweet?text=${text}`;
-    window.open(xIntent, '_blank', 'noopener');
+    // Try x.com intent first, fallback to twitter.com if blocked
+    const xIntentPrimary = `https://x.com/intent/tweet?text=${text}`;
+    const twitterFallback = `https://twitter.com/intent/tweet?text=${text}`;
 
-    // Open the image in new tab for the user to attach manually
+    // Prefer x.com but if popup blocked user can try fallback manually
+    const win = window.open(xIntentPrimary, '_blank', 'noopener');
+    if (!win) {
+      // popup blocked — open twitter as fallback in same attempt
+      window.open(twitterFallback, '_blank', 'noopener');
+    }
+
+    // Open the image in a new tab for the user to attach manually
     const data = scoreCanvas.toDataURL('image/png');
-    // Open image in a new tab - user can right-click save or upload to X
-    window.open(data, '_blank', 'noopener');
+    const imgWin = window.open(data, '_blank', 'noopener');
+    if (!imgWin) {
+      // popup blocked — use same-tab fallback to display image data URL
+      window.location.href = data;
+    }
   } catch (e) {
-    // fallback: open X compose only
     const iq = document.getElementById('iqNum').innerText;
     const text = encodeURIComponent(`I scored ${iq} IQ on the Zama Protocol Quiz! Try it: ${window.location.href}`);
-    window.open(`https://x.com/intent/tweet?text=${text}`, '_blank', 'noopener');
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener');
   }
 });
 
