@@ -227,7 +227,7 @@
           <!-- Score image canvas / controls -->
           <canvas id="scoreCanvas" width="600" height="320" style="display:block; margin-top:12px; border-radius:8px;"></canvas>
           <div style="margin-top:12px;" class="share-row">
-            <button class="share" id="shareBtn">Share Score</button>
+            <button class="share" id="shareBtn">Share on X</button>
             <button class="btn" id="downloadImg">Download Score Image</button>
             <button class="playagain" id="retryBtn">Play again</button>
           </div>
@@ -289,7 +289,7 @@ const iqNum = document.getElementById('iqNum');
 const iqPct = document.getElementById('iqPct');
 const correctCountEl = document.getElementById('correctCount');
 const rankLabelEl = document.getElementById('rankLabel');
-const shareBtn = document.getElementById('shareBtn');
+const shareBtn = document.getElementById('shareBtn'); // will be X-only
 const retryBtn = document.getElementById('retryBtn');
 
 const intro = document.getElementById('intro');
@@ -553,7 +553,7 @@ function finishQuiz(){
   // update best displays
   showBestNow();
 
-  // draw score image on canvas
+  // draw score image on canvas (with small IQ graph)
   drawScoreImage({iq, pct, rank, points, elapsed});
 }
 
@@ -619,7 +619,9 @@ function describeArc(cx,cy,r,startAngle,endAngle){
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
 }
 
-/* Score image: draw on canvas so user can download or share the image */
+/* Score image: draw on canvas so user can download or upload the image.
+   Added a small IQ position graph that shows where user's IQ sits between 60 and 160.
+*/
 function drawScoreImage({iq, pct, rank, points, elapsed}){
   if (!scoreCanvas) return;
   const ctx = scoreCanvas.getContext('2d');
@@ -628,7 +630,6 @@ function drawScoreImage({iq, pct, rank, points, elapsed}){
 
   // background
   ctx.clearRect(0,0,w,h);
-  // soft card background
   const grad = ctx.createLinearGradient(0,0,0,h);
   grad.addColorStop(0,'#ffffff');
   grad.addColorStop(1,'#fbfbfe');
@@ -637,13 +638,13 @@ function drawScoreImage({iq, pct, rank, points, elapsed}){
 
   // header
   ctx.fillStyle = '#111827';
-  ctx.font = 'bold 20px Inter, Arial';
+  ctx.font = '700 18px Inter, Arial';
   ctx.textAlign = 'left';
   ctx.fillText('Zama Protocol IQ Master Challenge', 28, 40);
 
   // IQ big
   ctx.fillStyle = '#111827';
-  ctx.font = 'bold 64px Inter, Arial';
+  ctx.font = '800 64px Inter, Arial';
   ctx.textAlign = 'left';
   ctx.fillText(iq, 28, 120);
 
@@ -665,12 +666,10 @@ function drawScoreImage({iq, pct, rank, points, elapsed}){
   ctx.textAlign = 'center';
   ctx.fillText(rank, w - 112, 52);
 
-  // draw a score bar
-  const barX = 28, barY = 230, barW = w - 56, barH = 26;
-  // background bar
+  // draw a progress bar showing percent
+  const barX = 28, barY = 230, barW = w - 56, barH = 20;
   ctx.fillStyle = 'rgba(11,18,32,0.06)';
   roundRect(ctx, barX, barY, barW, barH, 8, true, false);
-  // filled portion
   const fillW = Math.max(2, Math.round((pct/100) * barW));
   const arcGrad = ctx.createLinearGradient(barX,0,barX+barW,0);
   arcGrad.addColorStop(0,'#fff8d6');
@@ -678,11 +677,42 @@ function drawScoreImage({iq, pct, rank, points, elapsed}){
   ctx.fillStyle = arcGrad;
   roundRect(ctx, barX, barY, fillW, barH, 8, true, false);
 
+  // IQ position graph (60..160 scale)
+  const minIQ = 60, maxIQ = 160;
+  const graphX = 28, graphY = 266, graphW = w - 56, graphH = 28;
+  // background line
+  ctx.fillStyle = 'rgba(11,18,32,0.04)';
+  roundRect(ctx, graphX, graphY, graphW, graphH, 14, true, false);
+  // ticks and labels
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '12px Inter, Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${minIQ}`, graphX, graphY + graphH + 14);
+  ctx.textAlign = 'center';
+  ctx.fillText(`${(minIQ+maxIQ)/2}`, graphX + graphW/2, graphY + graphH + 14);
+  ctx.textAlign = 'right';
+  ctx.fillText(`${maxIQ}`, graphX + graphW, graphY + graphH + 14);
+
+  // marker position
+  const ratio = Math.max(0, Math.min(1, (iq - minIQ) / (maxIQ - minIQ)));
+  const markerX = graphX + Math.round(ratio * graphW);
+  // draw filled portion to marker
+  ctx.fillStyle = 'rgba(255,215,0,0.18)';
+  roundRect(ctx, graphX, graphY, Math.max(6, markerX - graphX), graphH, 14, true, false);
+  // draw marker (triangle)
+  ctx.beginPath();
+  ctx.moveTo(markerX, graphY - 4);
+  ctx.lineTo(markerX - 8, graphY + graphH + 6);
+  ctx.lineTo(markerX + 8, graphY + graphH + 6);
+  ctx.closePath();
+  ctx.fillStyle = '#b87f00';
+  ctx.fill();
+
   // small footer text
   ctx.font = '12px Inter, Arial';
   ctx.fillStyle = '#6b7280';
   ctx.textAlign = 'left';
-  ctx.fillText('Share this image with your friends or on socials!', 28, h - 18);
+  ctx.fillText('Share this image on X (Twitter) to show your score!', 28, h - 18);
 }
 
 /* helper: rounded rectangle drawing */
@@ -700,48 +730,29 @@ function roundRect(ctx, x, y, w, h, r, fill, stroke){
   if (stroke) { ctx.strokeStyle = 'rgba(11,18,32,0.04)'; ctx.stroke(); }
 }
 
-/* share behavior (tries to attach image file if supported) */
-shareBtn.addEventListener('click', async ()=>{
-  try{
-    // make sure canvas has latest image
-    const b = loadBest(); // not required but keep display in sync
-    // convert canvas to blob
-    if (!scoreCanvas) return;
-    scoreCanvas.toBlob(async (blob)=>{
-      if (!blob) {
-        // fallback: open image in new tab
-        const data = scoreCanvas.toDataURL('image/png');
-        window.open(data, '_blank');
-        return;
-      }
-      const filesArray = [ new File([blob], 'zama-quiz-score.png', { type: 'image/png' }) ];
-      const shareData = {
-        title: 'My Zama Quiz Score',
-        text: `I scored ${document.getElementById('iqNum').innerText} IQ on Zama Quiz!`,
-      };
-      // If navigator.canShare with files is available, share file directly (mobile/modern browsers)
-      if (navigator.canShare && navigator.canShare({ files: filesArray })) {
-        try {
-          await navigator.share({ ...shareData, files: filesArray });
-          return;
-        } catch (err) {
-          // ignore and fallback
-        }
-      }
-      // Fallback: open image in new tab and open twitter intent to let user upload manually
-      const data = scoreCanvas.toDataURL('image/png');
-      // open the image in new tab so user can save/upload
-      window.open(data, '_blank');
+/* Share on X (Twitter) button behavior:
+   - We can't auto-attach images to twitter.com/intent/tweet, so we open the generated image in a new tab
+     so the user can upload it manually, and open the X compose window with prefilled text.
+   - This keeps sharing focused on X only (as you requested).
+*/
+shareBtn.addEventListener('click', ()=>{
+  if (!scoreCanvas) return;
+  // open the score image in new tab (user can save/upload to X)
+  try {
+    const data = scoreCanvas.toDataURL('image/png');
+    window.open(data, '_blank');
 
-      // open twitter compose with text (no attachment possible)
-      const text = encodeURIComponent(`${shareData.text}\nTry it: ${window.location.href} #Zama #FHE`);
-      window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
-    }, 'image/png');
-  }catch(e){
-    // fallback: open twitter
+    // open X compose with prefilled text (user must attach/upload the image manually)
     const iq = document.getElementById('iqNum').innerText;
-    const encoded = encodeURIComponent(`I scored ${iq} IQ on the Zama Protocol Quiz! Try it: ${window.location.href} #Zama #FHE`);
-    window.open(`https://twitter.com/intent/tweet?text=${encoded}`,'_blank');
+    const pct = document.getElementById('iqPct').innerText;
+    const text = encodeURIComponent(`I scored ${iq} IQ (${pct}) on the Zama Protocol Quiz! Check your score and try it: ${window.location.href}`);
+    // opens X compose (twitter.com may redirect to x.com)
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener');
+  } catch (e) {
+    // fallback: open twitter compose only
+    const iq = document.getElementById('iqNum').innerText;
+    const text = encodeURIComponent(`I scored ${iq} IQ on the Zama Protocol Quiz! Try it: ${window.location.href}`);
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener');
   }
 });
 
