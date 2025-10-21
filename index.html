@@ -20,7 +20,8 @@
     --brand:#f36b47;
   }
 
-  html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;color:#0b1220;background: linear-gradient(180deg, var(--soft-bg-start), var(--soft-bg-end)); -webkit-font-smoothing:antialiased;}
+  html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;color:#0b1220;background: linear-gradient(180deg, var(--soft-bg-start) 0%, var(--soft-bg-end) 100%);}
+
   body{
     display:flex; align-items:center; justify-content:center; padding:28px;
   }
@@ -140,16 +141,6 @@
     .iq-num{font-size:30px;}
     .intro-card{padding:22px;}
   }
-
-  /* screenshot styling */
-  .screenshot {
-    max-width:640px;
-    display:block;
-    margin:12px auto 0;
-    border-radius:8px;
-    border:1px solid rgba(11,18,32,0.04);
-    box-shadow: 0 8px 28px rgba(11,18,32,0.04);
-  }
 </style>
 </head>
 <body>
@@ -171,7 +162,7 @@
           </div>
         </div>
         <div style="text-align:right">
-          <!-- best display removed per request -->
+          <div id="bestDisplay" class="qmeta" aria-live="polite"></div>
         </div>
       </header>
 
@@ -188,12 +179,8 @@
               Try this interactive quiz to learn about Fully Homomorphic Encryption (FHE) and Zama architecture.
               You get immediate feedback for each question and a performance summary when finished.
             </div>
-
-            <!-- screenshot added so repository shows a preview and users see a visual in the intro -->
-            <img src="assets/screenshot.svg" alt="Quiz screenshot" class="screenshot" />
-
             <button id="startBtn" class="start-btn" aria-label="Start Quiz">Start Quiz</button>
-            <!-- intro best removed per request -->
+            <div id="introBest" class="highscore" aria-live="polite"></div>
             <div style="margin-top:8px;color:var(--muted);font-size:13px;">Tip: press 1–4 to choose an answer, press Enter to continue.</div>
           </div>
         </div>
@@ -238,7 +225,7 @@
             <div style="margin-top:6px;color:#223246">You answered <strong id="correctCount">0</strong> / 20 correctly.</div>
             <div style="margin-top:6px;"><span class="rank-badge" id="rankLabel">Zama Explorer</span></div>
             <div id="elapsedDisplay" style="margin-top:6px;color:var(--muted);font-size:13px;"></div>
-            <!-- bestResult removed per request -->
+            <div id="bestResult" style="margin-top:6px;color:var(--muted);font-size:13px;"></div>
           </div>
 
           <!-- Score image canvas / controls (smaller image) -->
@@ -261,36 +248,33 @@
 /* CONFIG: seconds allowed per question */
 const TIME_PER_QUESTION = 20; // change this number if you want longer/shorter time per question
 
-/* 20 questions (weights: easy=1, mid=2, expert=3)
-   I replaced the original (partially truncated) QUESTIONS array and balanced correct-answer indices (a)
-   so answers are distributed across 0..3 rather than clustering at 1 or 2.
-*/
+/* 20 questions (weights: easy=1, mid=2, expert=3) */
 const QUESTIONS = [
   // Easy (1pt)
   {q:"What does FHE stand for?", o:["Fast Homomorphic Encryption","Fully Homomorphic Encryption","Functional Hidden Encryption","Finite Homomorphic Encoding"], a:1, pts:1},
   {q:"What primary problem does Zama Protocol address?", o:["Faster block finality","Confidential on-chain computation","Lower gas fees","Cross-chain swaps"], a:1, pts:1},
-  {q:"Which language is commonly used for encrypted contracts in the Zama stack?", o:["Rust","Solidity","Python","Go"], a:0, pts:1},
-  {q:"Where should sensitive data be encrypted before interacting with Zama contracts?", o:["Encrypt locally client-side","Send plaintext then encrypt on-chain","Store on IPFS then send link","Use miner-side encryption"], a:0, pts:1},
+  {q:"Which language is commonly used for encrypted contracts in Zama stack?", o:["Rust","Solidity","Python","Go"], a:0, pts:1},
+  {q:"Where should sensitive data be encrypted before interacting with Zama contracts?", o:["Encrypt locally client-side","Send plaintext then encrypt on-chain","Store on IPFS then send link","Use miner encryption"], a:0, pts:1},
   {q:"Which component orchestrates ciphertext flows and access control?", o:["Miner","Gateway","Wallet","Explorer"], a:1, pts:1},
 
   // Intermediate (2pts)
   {q:"Why use threshold KMS with FHE keys?", o:["Speed up FHE ops","Avoid single point of decryption control","Lower gas fees","Simplify UI"], a:1, pts:2},
-  {q:"What is the role of a coprocessor in Zama's architecture?", o:["Mine encrypted transactions","Run/verify heavy FHE computations off-chain","Host frontend SDK","Act as a price oracle"], a:1, pts:2},
-  {q:"Which encrypted types are examples used in FHE-enabled VMs?", o:["euint, eint, ebool, ebytes","privuint, secretint, lockbool","sealint, sealtx","crypt_uint, crypt_bool"], a:0, pts:2},
-  {q:"How do encrypted contracts maintain composability?", o:["They cannot","Via host contracts & gateways that bridge ciphertext interactions","By revealing plaintext to other contracts","Only via centralized servers"], a:1, pts:2},
+  {q:"What is the role of a coprocessor?", o:["Mine encrypted transactions","Run/verify heavy FHE computations off-chain","Host frontend SDK","Act as a price oracle"], a:1, pts:2},
+  {q:"Which example encrypted types are used in FHEVM?", o:["euint, eint, ebool, ebytes","privuint, secretint, lockbool","sealint, sealtx","crypt_uint, crypt_bool"], a:0, pts:2},
+  {q:"How do encrypted contracts maintain composability?", o:["They cannot","Via host contracts & gateways that bridge ciphertext interactions","By revealing plaintext to other contracts","Only via centralized oracles"], a:1, pts:2},
   {q:"Common FHE trade-off important for design is:", o:["Lower security","Higher compute cost and latency","Incompatibility with EVM","Impossible verification"], a:1, pts:2},
   {q:"Before encrypting inputs clients need:", o:["Miner signatures","Public encryption parameters or keys from KMS","Plaintext signatures","A new token"], a:1, pts:2},
   {q:"What reduces gas cost for ciphertext logic?", o:["Storing plaintext on-chain","Batching operations and minimizing ciphertext size","Using larger ciphertexts","Decrypt on-chain"], a:1, pts:2},
 
   // Expert (3pts)
   {q:"Which verification method improves coprocessor trust?", o:["No verification required","Off-chain verifiable receipts + on-chain checks","Trust-only attestation","Single-signer proofs"], a:1, pts:3},
-  {q:"Why use MPC (multi-party computation) in KMS design?", o:["Faster encryption","Split trust so no single party can decrypt","Replace FHE","Reduce ciphertext size"], a:1, pts:3},
+  {q:"Why use MPC in KMS design?", o:["Faster encryption","Split trust so no single party can decrypt","Replace FHE","Reduce ciphertext size"], a:1, pts:3},
   {q:"Key risk when bridging ciphertexts across chains is:", o:["Different token standards","Replay, key mismatch, and routing attacks","Faster finality","Block size"], a:1, pts:3},
   {q:"In a confidential auction built on Zama, which holds?", o:["All bids public","Bids encrypted until reveal or settlement","Winner cannot be verified","Bids stored plaintext"], a:1, pts:3},
-  {q:"Which approach makes FHE practical in production?", o:["Do everything on-chain","Offload heavy compute to coprocessors and verify on-chain","Require all users to run FHE locally","Use huge ciphertexts everywhere"], a:1, pts:3},
+  {q:"Which approach makes FHE practical in production?", o:["Do everything on-chain","Offload heavy compute to coprocessors and verify on-chain","Require all users to run FHE locally","Use huge ciphertexts without batching"], a:1, pts:3},
   {q:"Correct KMS security assumption:", o:["Single operator controls keys","Threshold of independent parties must collude to decrypt","Keys are public","KMS is unnecessary"], a:1, pts:3},
-  {q:"End-to-end encrypted compute flow:", o:["User sends plaintext → chain encrypts","User encrypts → Gateway routes → Coprocessor computes → On-chain records → Client decrypts via KMS", "Coprocessor decrypts and runs in plaintext on-chain","All parties share a single key"], a:1, pts:3},
-  {q:"Practical optimization to lower ciphertext costs:", o:["Always use maximum precision","Pack small values into single ciphertexts and minimize rounds","Run many small separate ops","Decrypt frequently"], a:1, pts:3}
+  {q:"End-to-end encrypted compute flow:", o:["User encrypts → Gateway routes → Coprocessor computes + returns ciphertext/receipt → On-chain result recorded → Client decrypts via KMS cooperation","User sends plaintext → Coprocessor encrypts → Miner validates","KMS does all compute","User posts keys"], a:0, pts:3},
+  {q:"Practical optimization to lower ciphertext costs:", o:["Always use maximum precision","Pack small values into single ciphertexts and minimize rounds","Run many small separate ops","Decrypt frequently on-chain"], a:1, pts:3}
 ];
 
 let index = 0, score = 0, points = 0, selected = null;
@@ -318,7 +302,10 @@ const qcounter = document.getElementById('qcounter');
 const feedbackEl = document.getElementById('feedback');
 const timeEl = document.getElementById('time');
 const countdownEl = document.getElementById('countdown');
+const bestDisplay = document.getElementById('bestDisplay');
+const introBest = document.getElementById('introBest');
 const elapsedDisplay = document.getElementById('elapsedDisplay');
+const bestResult = document.getElementById('bestResult');
 
 const scoreCanvas = document.getElementById('scoreCanvas');
 const downloadImgBtn = document.getElementById('downloadImg');
@@ -327,9 +314,7 @@ let startTime = null, elapsedTimer = null;
 let questionTimer = null, questionTimeLeft = TIME_PER_QUESTION;
 let autoAdvanceTimer = null;
 
-/* High score functions left (still save to localStorage), but we DO NOT display them.
-   This keeps backend behavior but removes the visible "Your best" / "Best" text as requested.
-*/
+/* High score (localStorage) */
 const LS_KEY = 'zama_quiz_best';
 function loadBest(){
   try{
@@ -367,6 +352,18 @@ function stopTimer(){
   timeEl.innerText = '00:00';
   return total;
 }
+
+/* initial best display */
+(function showBest(){
+  const b = loadBest();
+  if (b){
+    bestDisplay.textContent = `Best: ${b.points} pts · ${b.pct}% · ${b.time}`;
+    introBest.textContent = `Your best: ${b.points} pts — ${b.pct}% in ${b.time}`;
+  } else {
+    bestDisplay.textContent = '';
+    introBest.textContent = '';
+  }
+})();
 
 /* Question timer helpers */
 function startQuestionTimer(){
@@ -548,13 +545,17 @@ function finishQuiz(){
   rankLabelEl.innerText = rank;
   renderGauge(pct);
 
-  // save best result if better (kept, but not displayed)
+  // save best result if better
   const best = loadBest();
   const cur = { points, pct, time: elapsed };
   if (!best || (points > best.points) || (points === best.points && elapsedMs < parseTime(best.time))){
     saveBest(cur);
-    // no visible "New best" text shown per your request
+    bestResult.textContent = 'New best score! 🎉';
+  } else {
+    bestResult.textContent = '';
   }
+  // update best displays
+  showBestNow();
 
   // draw score image on canvas (bell curve with marker)
   drawScoreImage({iq, pct, rank, points, elapsed});
@@ -566,6 +567,19 @@ function parseTime(mmss){
   const parts = mmss.split(':').map(Number);
   if (parts.length!==2) return Infinity;
   return (parts[0]*60 + parts[1]) * 1000;
+}
+
+function showBestNow(){
+  const b = loadBest();
+  if (b){
+    bestDisplay.textContent = `Best: ${b.points} pts · ${b.pct}% · ${b.time}`;
+    introBest.textContent = `Your best: ${b.points} pts — ${b.pct}% in ${b.time}`;
+    bestResult.textContent = `Best: ${b.points} pts · ${b.pct}% · ${b.time}`;
+  } else {
+    bestDisplay.textContent = '';
+    introBest.textContent = '';
+    bestResult.textContent = '';
+  }
 }
 
 /* render speedometer arc */
@@ -610,7 +624,7 @@ function describeArc(cx,cy,r,startAngle,endAngle){
 }
 
 /* Score image: draw bell curve and IQ marker on canvas.
-   Smaller canvas size (720x320) so image is not too big.
+   Smaller canvas size now (720x320) so image is not too big.
 */
 function drawScoreImage({iq, pct, rank, points, elapsed}){
   if (!scoreCanvas) return;
@@ -620,9 +634,9 @@ function drawScoreImage({iq, pct, rank, points, elapsed}){
 
   // overall padding and areas
   const pad = 28;
-  const headerH = 70;
-  const graphTop = headerH + 8;
-  const graphH = h - graphTop - 70;
+  const headerH = 80;
+  const graphTop = headerH + 10;
+  const graphH = h - graphTop - 80;
   const graphX = pad;
   const graphW = w - pad*2;
 
@@ -644,21 +658,21 @@ function drawScoreImage({iq, pct, rank, points, elapsed}){
   ctx.fillStyle = '#111827';
   ctx.font = '700 16px Inter, Arial';
   ctx.textAlign = 'left';
-  ctx.fillText('Zama Protocol IQ Result', pad, 30);
+  ctx.fillText('Zama Protocol IQ Result', pad, 32);
 
   // IQ big number
   ctx.fillStyle = '#111827';
   ctx.font = '700 48px Inter, Arial';
   ctx.textAlign = 'left';
-  ctx.fillText(iq, pad, 90);
+  ctx.fillText(iq, pad, 94);
 
   ctx.font = '700 16px Inter, Arial';
   ctx.fillStyle = '#374151';
-  ctx.fillText(`${pct}%`, pad + 80, 88);
+  ctx.fillText(`${pct}%`, pad + 80, 92);
 
   ctx.font = '600 13px Inter, Arial';
   ctx.fillStyle = '#6b7280';
-  ctx.fillText(`Points: ${points} pts • Time: ${elapsed}`, pad, 116);
+  ctx.fillText(`Points: ${points} pts • Time: ${elapsed}`, pad, 118);
 
   // Prepare bell curve path
   const samples = 200;
@@ -802,7 +816,7 @@ function roundRect(ctx, x, y, w, h, r, fill, stroke){
 /* Share on X (Twitter) button behavior (X-only):
    - Opens the X compose window in a new tab.
    - Then opens the generated image in a new tab so the user can download/upload it to X manually.
-   - Uses x.com intent URL (falls back to twitter.com if needed).
+   - Use x.com intent URL (works with twitter.com as well).
 */
 shareBtn.addEventListener('click', ()=>{
   if (!scoreCanvas) return;
@@ -812,28 +826,19 @@ shareBtn.addEventListener('click', ()=>{
     const pct = document.getElementById('iqPct').innerText;
     const text = encodeURIComponent(`I scored ${iq} IQ (${pct}) on the Zama Protocol Quiz! Check your score and try it: ${window.location.href}`);
 
-    // Try x.com intent first, fallback to twitter.com if blocked
-    const xIntentPrimary = `https://x.com/intent/tweet?text=${text}`;
-    const twitterFallback = `https://twitter.com/intent/tweet?text=${text}`;
+    // Open X compose first (use x.com intent path)
+    const xIntent = `https://x.com/intent/tweet?text=${text}`;
+    window.open(xIntent, '_blank', 'noopener');
 
-    // Prefer x.com but if popup blocked user can try fallback manually
-    const win = window.open(xIntentPrimary, '_blank', 'noopener');
-    if (!win) {
-      // popup blocked — open twitter as fallback in same attempt
-      window.open(twitterFallback, '_blank', 'noopener');
-    }
-
-    // Open the image in a new tab for the user to attach manually
+    // Open the image in new tab for the user to attach manually
     const data = scoreCanvas.toDataURL('image/png');
-    const imgWin = window.open(data, '_blank', 'noopener');
-    if (!imgWin) {
-      // popup blocked — use same-tab fallback to display image data URL
-      window.location.href = data;
-    }
+    // Open image in a new tab - user can right-click save or upload to X
+    window.open(data, '_blank', 'noopener');
   } catch (e) {
+    // fallback: open X compose only
     const iq = document.getElementById('iqNum').innerText;
     const text = encodeURIComponent(`I scored ${iq} IQ on the Zama Protocol Quiz! Try it: ${window.location.href}`);
-    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener');
+    window.open(`https://x.com/intent/tweet?text=${text}`, '_blank', 'noopener');
   }
 });
 
