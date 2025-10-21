@@ -17,6 +17,7 @@
     --success: #10b981;
     --danger: #ef4444;
     --focus: rgba(99,102,241,0.24);
+    --brand:#f36b47;
   }
 
   html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;color:#0b1220;background: linear-gradient(180deg, var(--soft-bg-start) 0%, var(--soft-bg-end) 100%);}
@@ -225,7 +226,7 @@
           </div>
 
           <!-- Score image canvas / controls -->
-          <canvas id="scoreCanvas" width="600" height="320" style="display:block; margin-top:12px; border-radius:8px;"></canvas>
+          <canvas id="scoreCanvas" width="900" height="420" style="display:block; margin-top:12px; border-radius:8px;"></canvas>
           <div style="margin-top:12px;" class="share-row">
             <button class="share" id="shareBtn">Share on X</button>
             <button class="btn" id="downloadImg">Download Score Image</button>
@@ -289,7 +290,7 @@ const iqNum = document.getElementById('iqNum');
 const iqPct = document.getElementById('iqPct');
 const correctCountEl = document.getElementById('correctCount');
 const rankLabelEl = document.getElementById('rankLabel');
-const shareBtn = document.getElementById('shareBtn'); // will be X-only
+const shareBtn = document.getElementById('shareBtn'); // X-only
 const retryBtn = document.getElementById('retryBtn');
 
 const intro = document.getElementById('intro');
@@ -553,7 +554,7 @@ function finishQuiz(){
   // update best displays
   showBestNow();
 
-  // draw score image on canvas (with small IQ graph)
+  // draw score image on canvas (bell curve with marker)
   drawScoreImage({iq, pct, rank, points, elapsed});
 }
 
@@ -619,8 +620,10 @@ function describeArc(cx,cy,r,startAngle,endAngle){
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
 }
 
-/* Score image: draw on canvas so user can download or upload the image.
-   Added a small IQ position graph that shows where user's IQ sits between 60 and 160.
+/* Score image: draw bell curve and IQ marker on canvas.
+   This draws a bell curve (normal-like) between minIQ..maxIQ,
+   shows ticks and labels, draws a dashed vertical line at user's IQ,
+   and a round badge with the logo above the marker (so it looks like your sample).
 */
 function drawScoreImage({iq, pct, rank, points, elapsed}){
   if (!scoreCanvas) return;
@@ -628,7 +631,21 @@ function drawScoreImage({iq, pct, rank, points, elapsed}){
   const w = scoreCanvas.width;
   const h = scoreCanvas.height;
 
-  // background
+  // overall padding and areas
+  const pad = 28;
+  const headerH = 80;
+  const graphTop = headerH + 20;
+  const graphH = h - graphTop - 80;
+  const graphX = pad;
+  const graphW = w - pad*2;
+
+  // IQ scale we show on graph (wider than question mapping to match sample)
+  const minIQ = 55;
+  const maxIQ = 145;
+  const mu = 100; // center of bell
+  const sigma = 15; // width
+
+  // Clear and background
   ctx.clearRect(0,0,w,h);
   const grad = ctx.createLinearGradient(0,0,0,h);
   grad.addColorStop(0,'#ffffff');
@@ -636,83 +653,160 @@ function drawScoreImage({iq, pct, rank, points, elapsed}){
   ctx.fillStyle = grad;
   roundRect(ctx, 0, 0, w, h, 12, true, false);
 
-  // header
+  // Header text
   ctx.fillStyle = '#111827';
   ctx.font = '700 18px Inter, Arial';
   ctx.textAlign = 'left';
-  ctx.fillText('Zama Protocol IQ Master Challenge', 28, 40);
+  ctx.fillText('Zama Protocol IQ Result', pad, 36);
 
-  // IQ big
+  // IQ big number
   ctx.fillStyle = '#111827';
-  ctx.font = '800 64px Inter, Arial';
+  ctx.font = '800 56px Inter, Arial';
   ctx.textAlign = 'left';
-  ctx.fillText(iq, 28, 120);
+  ctx.fillText(iq, pad, 110);
 
   ctx.font = '700 18px Inter, Arial';
   ctx.fillStyle = '#374151';
-  ctx.fillText(`${pct}%`, 28, 150);
+  ctx.fillText(`${pct}%`, pad + 90, 108);
 
-  // points and time
   ctx.font = '600 14px Inter, Arial';
   ctx.fillStyle = '#6b7280';
-  ctx.fillText(`Points: ${points} pts`, 28, 180);
-  ctx.fillText(`Time: ${elapsed}`, 28, 200);
+  ctx.fillText(`Points: ${points} pts • Time: ${elapsed}`, pad, 140);
 
-  // rank badge
-  ctx.fillStyle = '#fff7e6';
-  roundRect(ctx, w - 190, 28, 156, 36, 20, true, false);
-  ctx.fillStyle = '#b87f00';
-  ctx.font = '700 14px Inter, Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText(rank, w - 112, 52);
-
-  // draw a progress bar showing percent
-  const barX = 28, barY = 230, barW = w - 56, barH = 20;
-  ctx.fillStyle = 'rgba(11,18,32,0.06)';
-  roundRect(ctx, barX, barY, barW, barH, 8, true, false);
-  const fillW = Math.max(2, Math.round((pct/100) * barW));
-  const arcGrad = ctx.createLinearGradient(barX,0,barX+barW,0);
-  arcGrad.addColorStop(0,'#fff8d6');
-  arcGrad.addColorStop(1,'#ffd700');
-  ctx.fillStyle = arcGrad;
-  roundRect(ctx, barX, barY, fillW, barH, 8, true, false);
-
-  // IQ position graph (60..160 scale)
-  const minIQ = 60, maxIQ = 160;
-  const graphX = 28, graphY = 266, graphW = w - 56, graphH = 28;
-  // background line
-  ctx.fillStyle = 'rgba(11,18,32,0.04)';
-  roundRect(ctx, graphX, graphY, graphW, graphH, 14, true, false);
-  // ticks and labels
-  ctx.fillStyle = '#6b7280';
-  ctx.font = '12px Inter, Arial';
-  ctx.textAlign = 'left';
-  ctx.fillText(`${minIQ}`, graphX, graphY + graphH + 14);
-  ctx.textAlign = 'center';
-  ctx.fillText(`${(minIQ+maxIQ)/2}`, graphX + graphW/2, graphY + graphH + 14);
-  ctx.textAlign = 'right';
-  ctx.fillText(`${maxIQ}`, graphX + graphW, graphY + graphH + 14);
-
-  // marker position
-  const ratio = Math.max(0, Math.min(1, (iq - minIQ) / (maxIQ - minIQ)));
-  const markerX = graphX + Math.round(ratio * graphW);
-  // draw filled portion to marker
-  ctx.fillStyle = 'rgba(255,215,0,0.18)';
-  roundRect(ctx, graphX, graphY, Math.max(6, markerX - graphX), graphH, 14, true, false);
-  // draw marker (triangle)
+  // Prepare bell curve path
+  const samples = 220;
+  const pointsY = [];
+  let maxDensity = 0;
+  for (let i=0;i<=samples;i++){
+    const xVal = minIQ + (i/samples)*(maxIQ-minIQ);
+    const density = Math.exp(-0.5 * Math.pow((xVal - mu)/sigma,2));
+    pointsY.push({xVal, density});
+    if (density > maxDensity) maxDensity = density;
+  }
+  // Map density to pixel y
+  const baseY = graphTop + graphH;
+  // draw filled bell curve
   ctx.beginPath();
-  ctx.moveTo(markerX, graphY - 4);
-  ctx.lineTo(markerX - 8, graphY + graphH + 6);
-  ctx.lineTo(markerX + 8, graphY + graphH + 6);
+  for (let i=0;i<=samples;i++){
+    const p = pointsY[i];
+    const x = graphX + ((p.xVal - minIQ)/(maxIQ - minIQ)) * graphW;
+    const y = baseY - (p.density / maxDensity) * (graphH * 0.9);
+    if (i===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+  }
+  // close down to baseline
+  ctx.lineTo(graphX + graphW, baseY);
+  ctx.lineTo(graphX, baseY);
   ctx.closePath();
-  ctx.fillStyle = '#b87f00';
+  // gradient fill for bell
+  const bellGrad = ctx.createLinearGradient(0, graphTop, 0, graphTop + graphH);
+  bellGrad.addColorStop(0,'rgba(243,107,71,0.16)');
+  bellGrad.addColorStop(1,'rgba(243,107,71,0.06)');
+  ctx.fillStyle = bellGrad;
   ctx.fill();
 
-  // small footer text
+  // draw bell outline (soft)
+  ctx.beginPath();
+  for (let i=0;i<=samples;i++){
+    const p = pointsY[i];
+    const x = graphX + ((p.xVal - minIQ)/(maxIQ - minIQ)) * graphW;
+    const y = baseY - (p.density / maxDensity) * (graphH * 0.9);
+    if (i===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+  }
+  ctx.strokeStyle = 'rgba(243,107,71,0.65)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // draw vertical ticks and labels at desired IQs like sample
+  const ticks = [55,70,85,100,115,130,145];
+  ctx.fillStyle = '#c2410c';
+  ctx.font = '600 12px Inter, Arial';
+  ctx.textAlign = 'center';
+  ticks.forEach(t=>{
+    const tx = graphX + ((t - minIQ)/(maxIQ - minIQ)) * graphW;
+    // small tick
+    ctx.beginPath();
+    ctx.moveTo(tx, baseY);
+    ctx.lineTo(tx, baseY + 6);
+    ctx.strokeStyle = 'rgba(11,18,32,0.08)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // label below
+    ctx.fillStyle = '#d97706';
+    ctx.fillText(String(t), tx, baseY + 22);
+  });
+
+  // compute marker x for user's IQ and density at that IQ
+  const clampedIQ = Math.max(minIQ, Math.min(maxIQ, iq));
+  const markerX = graphX + ((clampedIQ - minIQ)/(maxIQ - minIQ)) * graphW;
+  // interpolate density at user's IQ by formula
+  const densityAtIQ = Math.exp(-0.5 * Math.pow((clampedIQ - mu)/sigma,2));
+  const markerY = baseY - (densityAtIQ / maxDensity) * (graphH * 0.9);
+
+  // dashed vertical line
+  ctx.beginPath();
+  ctx.setLineDash([6,6]);
+  ctx.moveTo(markerX, markerY + 28);
+  ctx.lineTo(markerX, baseY);
+  ctx.strokeStyle = 'rgba(243,107,71,0.6)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // draw badge circle with logo on top of marker
+  const badgeR = 28;
+  const badgeY = markerY - badgeR - 6;
+  // outer ring
+  ctx.beginPath();
+  ctx.arc(markerX, badgeY, badgeR+4, 0, Math.PI*2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  // orange outer shadow ring
+  ctx.beginPath();
+  ctx.arc(markerX, badgeY, badgeR+2, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(243,107,71,0.12)';
+  ctx.fill();
+  // inner circle
+  ctx.beginPath();
+  ctx.arc(markerX, badgeY, badgeR, 0, Math.PI*2);
+  ctx.fillStyle = '#f36b47';
+  ctx.fill();
+
+  // draw small logo inside badge (async image)
+  const logo = new Image();
+  logo.crossOrigin = 'anonymous';
+  logo.src = 'https://avatars.githubusercontent.com/u/57671822?s=280&v=4';
+  logo.onload = () => {
+    // draw the logo centered and slightly inset
+    const imgSize = badgeR * 1.1;
+    ctx.save();
+    // circular clip for logo
+    ctx.beginPath();
+    ctx.arc(markerX, badgeY, badgeR - 4, 0, Math.PI*2);
+    ctx.clip();
+    ctx.drawImage(logo, markerX - imgSize/2, badgeY - imgSize/2, imgSize, imgSize);
+    ctx.restore();
+    // small white stroke
+    ctx.beginPath();
+    ctx.arc(markerX, badgeY, badgeR, 0, Math.PI*2);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.stroke();
+  };
+  // If image fails to load, leave colored badge (logo not critical)
+
+  // small label near badge with user's descriptor
+  ctx.font = '700 14px Inter, Arial';
+  ctx.fillStyle = '#b8462b';
+  ctx.textAlign = 'center';
+  ctx.fillText(rank, markerX, badgeY + badgeR + 18);
+
+  // footer prompt
   ctx.font = '12px Inter, Arial';
   ctx.fillStyle = '#6b7280';
   ctx.textAlign = 'left';
-  ctx.fillText('Share this image on X (Twitter) to show your score!', 28, h - 18);
+  ctx.fillText('Share this image on X (Twitter) to show your score!', pad, h - 18);
 }
 
 /* helper: rounded rectangle drawing */
@@ -730,26 +824,23 @@ function roundRect(ctx, x, y, w, h, r, fill, stroke){
   if (stroke) { ctx.strokeStyle = 'rgba(11,18,32,0.04)'; ctx.stroke(); }
 }
 
-/* Share on X (Twitter) button behavior:
-   - We can't auto-attach images to twitter.com/intent/tweet, so we open the generated image in a new tab
-     so the user can upload it manually, and open the X compose window with prefilled text.
-   - This keeps sharing focused on X only (as you requested).
+/* Share on X (Twitter) button behavior (X-only):
+   - opens the generated score image in a new tab for the user to save
+   - opens twitter compose with prefilled text (user must attach the image manually)
 */
 shareBtn.addEventListener('click', ()=>{
   if (!scoreCanvas) return;
-  // open the score image in new tab (user can save/upload to X)
   try {
+    // open the score image in new tab
     const data = scoreCanvas.toDataURL('image/png');
     window.open(data, '_blank');
 
-    // open X compose with prefilled text (user must attach/upload the image manually)
+    // open X compose with prefilled text
     const iq = document.getElementById('iqNum').innerText;
     const pct = document.getElementById('iqPct').innerText;
     const text = encodeURIComponent(`I scored ${iq} IQ (${pct}) on the Zama Protocol Quiz! Check your score and try it: ${window.location.href}`);
-    // opens X compose (twitter.com may redirect to x.com)
     window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener');
   } catch (e) {
-    // fallback: open twitter compose only
     const iq = document.getElementById('iqNum').innerText;
     const text = encodeURIComponent(`I scored ${iq} IQ on the Zama Protocol Quiz! Try it: ${window.location.href}`);
     window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener');
