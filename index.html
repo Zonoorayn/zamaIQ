@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Zama Protocol IQ Master Challenge</title>
-<meta name="description" content="Zama Protocol IQ Master Challenge — 20 questions from basic to expert on FHE and Zama architecture." />
+<meta name="description" content="Zama Protocol IQ Master Challenge — interactive quiz about FHE and Zama architecture." />
 <link rel="icon" href="data:," />
 <style>
   :root{
@@ -14,35 +14,52 @@
     --card:#ffffff;
     --muted: #6b7280;
     --accent-shadow: 0 12px 30px rgba(255,183,6,0.12);
+    --success: #10b981;
+    --danger: #ef4444;
+    --focus: rgba(99,102,241,0.24);
   }
-  html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;color:#0b1220;}
+
+  html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;color:#0b1220;background: linear-gradient(180deg, var(--soft-bg-start) 0%, var(--soft-bg-end) 100%);}
+
   body{
-    background: linear-gradient(180deg, var(--soft-bg-start) 0%, var(--soft-bg-end) 100%);
     display:flex; align-items:center; justify-content:center; padding:28px;
   }
+
   .wrap{width:100%;max-width:980px; position:relative; z-index:2;}
   .card{
     background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.92));
     border-radius:18px; padding:26px; box-shadow: var(--accent-shadow); border:1px solid rgba(0,0,0,0.04);
   }
+
   header{display:flex; align-items:center; justify-content:space-between; gap:16px;}
   .brand{display:flex; align-items:center; gap:14px;}
   .brand img{width:56px;height:56px;border-radius:10px;object-fit:cover;border:1px solid rgba(0,0,0,0.04)}
   h1{margin:0;font-size:20px;color:#0b1220;font-weight:800;letter-spacing:0.2px;}
-  .qcount{color:var(--muted); font-size:13px;}
+
   .progress{height:8px;background:rgba(11,18,32,0.04);border-radius:999px;margin:18px 0;overflow:hidden;}
   .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--zama-yellow),#ffd94d); width:0%; transition:width .4s ease;}
-  main .question{font-size:18px;margin:14px 0 18px 0; color:#0b1220;}
-  .options{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;}
+
+  main .question{font-size:18px;margin:6px 0 8px 0; color:#0b1220; font-weight:700;}
+  .q-row{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .qcounter{color:var(--muted); font-size:13px;}
+  .qmeta{color:var(--muted); font-size:13px;}
+
+  .options{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:8px;}
   .opt{
     background: #fffefc;
     border:1px solid rgba(11,18,32,0.06);
-    padding:14px; border-radius:999px; display:flex; align-items:center; gap:12px; cursor:pointer;
+    padding:14px; border-radius:12px; display:flex; align-items:center; gap:12px; cursor:pointer;
     transition:all .14s ease; text-align:left; box-shadow: 0 4px 14px rgba(11,18,32,0.04);
+    outline: none;
   }
   .opt:hover{transform:translateY(-4px); border-color: rgba(255,183,6,0.18);}
+  .opt:focus{box-shadow: 0 0 0 6px var(--focus); transform:none;}
   .opt .bullet{width:20px;height:20px;border-radius:50%; border:2px solid var(--zama-yellow); flex-shrink:0; display:inline-block;}
   .opt.disabled{opacity:.52; pointer-events:none;}
+  .opt.correct{background:linear-gradient(90deg,#e6ffef,#bff7da); border-color: rgba(16,185,129,0.22);}
+  .opt.wrong{background:linear-gradient(90deg,#fff0f0,#ffdede); border-color: rgba(239,68,68,0.16);}
+  .opt.revealed{opacity:1;}
+
   .footer-row{display:flex; align-items:center; justify-content:space-between; margin-top:18px;}
   .btn{
     background:var(--zama-yellow); color:#0b1220; padding:10px 16px; border-radius:999px; font-weight:800; border:none; cursor:pointer;
@@ -60,9 +77,12 @@
   .share-row{display:flex; gap:10px; align-items:center;}
   .share{background:#1D9BF0; color:white; padding:10px 14px; border-radius:999px; font-weight:800; border:none; cursor:pointer;}
   .playagain{background:transparent; color:#0b1220; padding:10px 14px; border-radius:999px; border:1px solid rgba(11,18,32,0.06); cursor:pointer; font-weight:700;}
+
   footer{margin-top:12px; text-align:center; color:var(--muted); font-size:13px;}
-  .watermark{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:0; opacity:0.06; filter: blur(6px);}
+
+  .watermark{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:0; opacity:0.04; filter: blur(6px);}
   .watermark img{width:420px;height:420px;object-fit:contain; transform:rotate(-6deg);}
+
   .particles{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
   .particle{position:absolute;border-radius:50%; filter: blur(14px); opacity:.45; mix-blend-mode:screen;}
 
@@ -92,6 +112,22 @@
     color:#fff; padding:10px 20px; border-radius:999px; border:none; cursor:pointer; font-weight:800;
     box-shadow: 0 8px 24px rgba(99,102,241,0.12);
   }
+  .highscore{color:var(--muted); font-size:13px; margin-top:8px;}
+
+  /* timer pill */
+  .timer-pill{
+    display:inline-block;
+    padding:6px 10px;
+    background:rgba(11,18,32,0.04);
+    border-radius:999px;
+    font-weight:700;
+    font-size:13px;
+    color:#0b1220;
+  }
+
+  /* small helpers */
+  .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; white-space:nowrap;}
+  .time-elapsed{color:var(--muted); font-size:13px;}
 
   @media (max-width:720px){
     .options{grid-template-columns:1fr;}
@@ -119,10 +155,11 @@
           <img src="https://avatars.githubusercontent.com/u/57671822?s=280&v=4" alt="Zama logo" />
           <div>
             <h1 id="title">Zama Protocol IQ Master Challenge</h1>
-            <!-- Removed promotional subtitle per request -->
           </div>
         </div>
-        <!-- Removed the "20 Q" count for a cleaner header -->
+        <div style="text-align:right">
+          <div id="bestDisplay" class="qmeta" aria-live="polite"></div>
+        </div>
       </header>
 
       <div class="progress" aria-hidden="true"><i id="prog" style="width:0%"></i></div>
@@ -133,28 +170,44 @@
           <div class="intro-card" role="region" aria-label="Introduction">
             <img class="intro-logo" src="https://avatars.githubusercontent.com/u/57671822?s=280&v=4" alt="logo" />
             <div class="intro-sub">Test Your Knowledge</div>
-            <div class="intro-title">Welcome to Zama Protocol IQ Master Challenge!</div>
+            <div class="intro-title">Welcome to Zama Protocol IQ Master Challenge</div>
             <div class="intro-desc">
-              Try this interactive quiz to learn about FHE and Zama architecture.
-              You will get instant feedback on each question and see your final score at the end.
+              Try this interactive quiz to learn about Fully Homomorphic Encryption (FHE) and Zama architecture.
+              You get immediate feedback for each question and a performance summary when finished.
             </div>
             <button id="startBtn" class="start-btn" aria-label="Start Quiz">Start Quiz</button>
+            <div id="introBest" class="highscore" aria-live="polite"></div>
+            <div style="margin-top:8px;color:var(--muted);font-size:13px;">Tip: press 1–4 to choose an answer, press Enter to continue.</div>
           </div>
         </div>
 
         <!-- QUIZ (hidden until Start) -->
-        <div id="quiz" style="display:none">
-          <div class="question" id="question">Question text</div>
-          <div class="options" id="options" aria-live="polite"></div>
+        <div id="quiz" style="display:none" aria-hidden="true">
+          <div class="q-row">
+            <div>
+              <div class="question" id="question">Question text</div>
+              <div id="feedback" class="sr-only" aria-live="assertive"></div>
+            </div>
+            <div style="text-align:right">
+              <div id="qcounter" class="qcounter">Question 1 / 20</div>
+              <div style="margin-top:8px;">
+                <span id="time" class="time-elapsed">00:00</span>
+                <span id="countdown" class="timer-pill" style="margin-left:10px">20s</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="options" id="options" aria-live="polite" role="list"></div>
 
           <div class="footer-row">
             <div class="muted" id="qmeta">Difficulty: —</div>
             <div>
-              <button class="btn" id="nextBtn" disabled>Next</button>
+              <button class="btn" id="nextBtn" disabled aria-disabled="true">Next</button>
             </div>
           </div>
         </div>
 
+        <!-- RESULT -->
         <div id="result" style="display:none" class="result" aria-hidden="true">
           <div class="gauge-wrap" id="gwrap">
             <svg id="gauge" width="220" height="220" viewBox="0 0 120 120" aria-hidden="true"></svg>
@@ -167,10 +220,15 @@
           <div id="resultText" style="text-align:center;">
             <div style="margin-top:6px;color:#223246">You answered <strong id="correctCount">0</strong> / 20 correctly.</div>
             <div style="margin-top:6px;"><span class="rank-badge" id="rankLabel">Zama Explorer</span></div>
+            <div id="elapsedDisplay" style="margin-top:6px;color:var(--muted);font-size:13px;"></div>
+            <div id="bestResult" style="margin-top:6px;color:var(--muted);font-size:13px;"></div>
           </div>
 
-          <div style="margin-top:14px;" class="share-row">
-            <button class="share" id="shareBtn">Share on X</button>
+          <!-- Score image canvas / controls -->
+          <canvas id="scoreCanvas" width="600" height="320" style="display:block; margin-top:12px; border-radius:8px;"></canvas>
+          <div style="margin-top:12px;" class="share-row">
+            <button class="share" id="shareBtn">Share Score</button>
+            <button class="btn" id="downloadImg">Download Score Image</button>
             <button class="playagain" id="retryBtn">Play again</button>
           </div>
         </div>
@@ -183,12 +241,15 @@
   </div>
 
 <script>
-/* 20 educational, mixed-level questions (pts weight: easy=1, mid=2, expert=3) */
+/* CONFIG: seconds allowed per question */
+const TIME_PER_QUESTION = 20; // change this number if you want longer/shorter time per question
+
+/* 20 questions (weights: easy=1, mid=2, expert=3) */
 const QUESTIONS = [
   // Easy (1pt)
   {q:"What does FHE stand for?", o:["Fast Homomorphic Encryption","Fully Homomorphic Encryption","Functional Hidden Encryption","Finite Homomorphic Encoding"], a:1, pts:1},
   {q:"What primary problem does Zama Protocol address?", o:["Faster block finality","Confidential on-chain computation","Lower gas fees","Cross-chain swaps"], a:1, pts:1},
-  {q:"Which language is commonly used for encrypted contracts in Zama stack?", o:["Rust","Solidity","Python","Go"], a:1, pts:1},
+  {q:"Which language is commonly used for encrypted contracts in Zama stack?", o:["Rust","Solidity","Python","Go"], a:0, pts:1},
   {q:"Where should sensitive data be encrypted before interacting with Zama contracts?", o:["Encrypt locally client-side","Send plaintext then encrypt on-chain","Store on IPFS then send link","Use miner encryption"], a:0, pts:1},
   {q:"Which component orchestrates ciphertext flows and access control?", o:["Miner","Gateway","Wallet","Explorer"], a:1, pts:1},
 
@@ -219,7 +280,7 @@ const totalQ = QUESTIONS.length, totalPts = QUESTIONS.reduce((s,q)=>s+q.pts,0);
 const qEl = document.getElementById('question');
 const optsEl = document.getElementById('options');
 const progEl = document.getElementById('prog');
-const qmeta = document.getElementById('qmeta');
+const qmetaEl = document.getElementById('qmeta');
 const nextBtn = document.getElementById('nextBtn');
 const resultBox = document.getElementById('result');
 const quizBox = document.getElementById('quiz');
@@ -233,74 +294,288 @@ const retryBtn = document.getElementById('retryBtn');
 
 const intro = document.getElementById('intro');
 const startBtn = document.getElementById('startBtn');
+const qcounter = document.getElementById('qcounter');
+const feedbackEl = document.getElementById('feedback');
+const timeEl = document.getElementById('time');
+const countdownEl = document.getElementById('countdown');
+const bestDisplay = document.getElementById('bestDisplay');
+const introBest = document.getElementById('introBest');
+const elapsedDisplay = document.getElementById('elapsedDisplay');
+const bestResult = document.getElementById('bestResult');
+
+const scoreCanvas = document.getElementById('scoreCanvas');
+const downloadImgBtn = document.getElementById('downloadImg');
+
+let startTime = null, elapsedTimer = null;
+let questionTimer = null, questionTimeLeft = TIME_PER_QUESTION;
+let autoAdvanceTimer = null;
+
+/* High score (localStorage) */
+const LS_KEY = 'zama_quiz_best';
+function loadBest(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+function saveBest(obj){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(obj)); }catch(e){}
+}
+
+/* format mm:ss */
+function formatTime(ms){
+  const s = Math.floor(ms/1000);
+  const mm = String(Math.floor(s/60)).padStart(2,'0');
+  const ss = String(s%60).padStart(2,'0');
+  return `${mm}:${ss}`;
+}
+
+/* update live timer */
+function startTimer(){
+  startTime = Date.now();
+  if (elapsedTimer) clearInterval(elapsedTimer);
+  elapsedTimer = setInterval(()=>{
+    const t = Date.now() - startTime;
+    timeEl.innerText = formatTime(t);
+  }, 500);
+}
+function stopTimer(){
+  if (elapsedTimer) clearInterval(elapsedTimer);
+  if (!startTime) return 0;
+  const total = Date.now() - startTime;
+  startTime = null;
+  timeEl.innerText = '00:00';
+  return total;
+}
+
+/* initial best display */
+(function showBest(){
+  const b = loadBest();
+  if (b){
+    bestDisplay.textContent = `Best: ${b.points} pts · ${b.pct}% · ${b.time}`;
+    introBest.textContent = `Your best: ${b.points} pts — ${b.pct}% in ${b.time}`;
+  } else {
+    bestDisplay.textContent = '';
+    introBest.textContent = '';
+  }
+})();
+
+/* Question timer helpers */
+function startQuestionTimer(){
+  clearQuestionTimer();
+  questionTimeLeft = TIME_PER_QUESTION;
+  countdownEl.textContent = questionTimeLeft + 's';
+  questionTimer = setInterval(()=>{
+    questionTimeLeft--;
+    countdownEl.textContent = questionTimeLeft + 's';
+    // subtle color change when near end
+    if (questionTimeLeft <= 5){
+      countdownEl.style.background = 'rgba(239,68,68,0.08)';
+      countdownEl.style.color = '#ef4444';
+    } else {
+      countdownEl.style.background = 'rgba(11,18,32,0.04)';
+      countdownEl.style.color = '#0b1220';
+    }
+    if (questionTimeLeft <= 0){
+      clearQuestionTimer();
+      handleTimeout();
+    }
+  }, 1000);
+}
+
+function clearQuestionTimer(){
+  if (questionTimer) clearInterval(questionTimer);
+  questionTimer = null;
+  countdownEl.textContent = '';
+  countdownEl.style.background = 'rgba(11,18,32,0.04)';
+  countdownEl.style.color = '#0b1220';
+}
 
 /* Render question */
 function renderQuestion(){
   selected = null;
   nextBtn.disabled = true;
+  nextBtn.setAttribute('aria-disabled','true');
   nextBtn.innerText = (index+1 < totalQ) ? 'Next' : 'Finish';
   const item = QUESTIONS[index];
   qEl.textContent = item.q;
+  qmetaEl.textContent = `Difficulty: ${item.pts} pts`;
+  qcounter.innerText = `Question ${index+1} / ${totalQ}`;
   optsEl.innerHTML = '';
-  qmeta.textContent = `Difficulty points: ${item.pts}`;
+  feedbackEl.textContent = '';
+
   item.o.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'opt';
     btn.type = 'button';
+    btn.setAttribute('role','listitem');
+    btn.setAttribute('data-index', i);
     btn.innerHTML = `<span class="bullet" aria-hidden="true"></span><span style="flex:1">${opt}</span>`;
-    btn.onclick = () => {
-      if (selected !== null) return;
-      selected = i;
-      // disable all visually then highlight chosen
-      Array.from(optsEl.children).forEach((c, idx) => {
-        c.classList.add('disabled');
-        if (idx === i) {
-          c.classList.remove('disabled');
-          c.style.background = 'linear-gradient(90deg,#fff8d6,#ffd700)';
-          c.style.color = '#0b1220';
-        }
-      });
-      if (i === item.a) { score++; points += item.pts; }
-      nextBtn.disabled = false;
+    btn.onclick = () => handleSelect(i);
+    btn.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault(); handleSelect(i);
+      }
     };
     optsEl.appendChild(btn);
   });
+
+  // progress bar (percent of questions completed)
   const percent = Math.round((index/totalQ)*100);
   progEl.style.width = percent + '%';
+
+  // start per-question timer
+  startQuestionTimer();
+
+  // ensure focus
+  setTimeout(()=> {
+    const first = optsEl.querySelector('.opt');
+    if (first) first.focus();
+  }, 60);
+}
+
+/* handle select (shows immediate feedback and reveals correct/wrong) */
+function handleSelect(i){
+  if (selected !== null) return; // prevent double select
+  clearQuestionTimer(); // stop timer for this question
+  const item = QUESTIONS[index];
+  selected = i;
+
+  const children = Array.from(optsEl.children);
+  children.forEach((c, idx) => {
+    c.classList.add('disabled');
+    c.setAttribute('aria-disabled','true');
+    if (idx === i){
+      if (idx === item.a){
+        c.classList.add('correct');
+      } else {
+        c.classList.add('wrong');
+      }
+    }
+    if (idx === item.a){
+      c.classList.add('correct','revealed');
+    }
+  });
+
+  // scoring only once per question
+  if (i === item.a) { score++; points += item.pts; }
+  nextBtn.disabled = false;
+  nextBtn.setAttribute('aria-disabled','false');
+
+  // announce for screen readers
+  const chosen = children[i] ? children[i].innerText : '';
+  const announce = (i === item.a) ? `Correct: ${chosen}` : `Time/answer incorrect. Correct answer: ${children[item.a].innerText}`;
+  feedbackEl.textContent = announce;
+}
+
+/* handle timeout: user didn't answer in time */
+function handleTimeout(){
+  if (selected !== null) return; // already answered
+  selected = -1; // mark as timed out
+  const item = QUESTIONS[index];
+  const children = Array.from(optsEl.children);
+  children.forEach((c, idx) => {
+    c.classList.add('disabled');
+    c.setAttribute('aria-disabled','true');
+    if (idx === item.a){
+      c.classList.add('correct','revealed');
+    }
+  });
+  feedbackEl.textContent = `Time's up! Correct: ${children[item.a].innerText}`;
+  // enable next and auto advance after short pause
+  nextBtn.disabled = false;
+  nextBtn.setAttribute('aria-disabled','false');
+
+  // auto-advance so AI scraping is harder / user cannot stall
+  if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
+  autoAdvanceTimer = setTimeout(()=>{
+    if (index+1 < totalQ) {
+      index++; renderQuestion(); window.scrollTo({top:0, behavior:'smooth'});
+    } else {
+      finishQuiz();
+    }
+  }, 1800); // 1.8s pause so user can see correct answer
 }
 
 /* Start button behavior */
-startBtn.addEventListener('click', ()=>{
+startBtn.addEventListener('click', startQuiz);
+function startQuiz(){
   // hide intro, show quiz and start
   intro.style.display = 'none';
   quizBox.style.display = '';
+  resultBox.style.display = 'none';
   index = 0; score = 0; points = 0; selected = null;
   progEl.style.width = '0%';
+  timeEl.innerText = '00:00';
   renderQuestion();
+  startTimer();
   window.scrollTo({top:0, behavior:'smooth'});
-});
+}
 
 /* next */
 nextBtn.addEventListener('click', ()=>{
+  // if user clicked Next before auto-advance, stop any auto timer
+  if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
   if (selected === null) return;
-  if (index+1 < totalQ){ index++; renderQuestion(); window.scrollTo({top:0, behavior:'smooth'}); }
-  else finishQuiz();
+  if (index+1 < totalQ){
+    index++; renderQuestion(); window.scrollTo({top:0, behavior:'smooth'});
+  } else finishQuiz();
 });
 
 /* finish */
 function finishQuiz(){
   quizBox.style.display = 'none';
   resultBox.style.display = 'flex';
+  const elapsedMs = stopTimer();
+  const elapsed = formatTime(elapsedMs);
   const pct = Math.round((points/totalPts)*100);
   const iq = Math.round((points/totalPts)*100 + 60); // 60..160 mapping
   iqNum.innerText = iq;
   iqPct.innerText = pct + '%';
   correctCountEl.innerText = score;
+  elapsedDisplay.innerText = `Time: ${elapsed}`;
   let rank = 'Zama Explorer';
   if (points >= Math.round(totalPts*0.8)) rank = 'Zama Mastermind';
   else if (points >= Math.round(totalPts*0.5)) rank = 'FHE Apprentice';
   rankLabelEl.innerText = rank;
   renderGauge(pct);
+
+  // save best result if better
+  const best = loadBest();
+  const cur = { points, pct, time: elapsed };
+  if (!best || (points > best.points) || (points === best.points && elapsedMs < parseTime(best.time))){
+    saveBest(cur);
+    bestResult.textContent = 'New best score! 🎉';
+  } else {
+    bestResult.textContent = '';
+  }
+  // update best displays
+  showBestNow();
+
+  // draw score image on canvas
+  drawScoreImage({iq, pct, rank, points, elapsed});
+}
+
+/* helper parse mm:ss to ms */
+function parseTime(mmss){
+  if (!mmss) return Infinity;
+  const parts = mmss.split(':').map(Number);
+  if (parts.length!==2) return Infinity;
+  return (parts[0]*60 + parts[1]) * 1000;
+}
+
+function showBestNow(){
+  const b = loadBest();
+  if (b){
+    bestDisplay.textContent = `Best: ${b.points} pts · ${b.pct}% · ${b.time}`;
+    introBest.textContent = `Your best: ${b.points} pts — ${b.pct}% in ${b.time}`;
+    bestResult.textContent = `Best: ${b.points} pts · ${b.pct}% · ${b.time}`;
+  } else {
+    bestDisplay.textContent = '';
+    introBest.textContent = '';
+    bestResult.textContent = '';
+  }
 }
 
 /* render speedometer arc */
@@ -344,11 +619,142 @@ function describeArc(cx,cy,r,startAngle,endAngle){
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
 }
 
-/* share behavior */
-shareBtn.addEventListener('click', ()=>{
-  const iq = document.getElementById('iqNum').innerText;
-  const text = encodeURIComponent(`I just scored ${iq} IQ on the Zama Protocol Quiz! 🧠\nTry it yourself at https://zamaquiz.vercel.app #Zama #FHE #Web3`);
-  window.open(`https://twitter.com/intent/tweet?text=${text}`,'_blank');
+/* Score image: draw on canvas so user can download or share the image */
+function drawScoreImage({iq, pct, rank, points, elapsed}){
+  if (!scoreCanvas) return;
+  const ctx = scoreCanvas.getContext('2d');
+  const w = scoreCanvas.width;
+  const h = scoreCanvas.height;
+
+  // background
+  ctx.clearRect(0,0,w,h);
+  // soft card background
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'#ffffff');
+  grad.addColorStop(1,'#fbfbfe');
+  ctx.fillStyle = grad;
+  roundRect(ctx, 0, 0, w, h, 12, true, false);
+
+  // header
+  ctx.fillStyle = '#111827';
+  ctx.font = 'bold 20px Inter, Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('Zama Protocol IQ Master Challenge', 28, 40);
+
+  // IQ big
+  ctx.fillStyle = '#111827';
+  ctx.font = 'bold 64px Inter, Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText(iq, 28, 120);
+
+  ctx.font = '700 18px Inter, Arial';
+  ctx.fillStyle = '#374151';
+  ctx.fillText(`${pct}%`, 28, 150);
+
+  // points and time
+  ctx.font = '600 14px Inter, Arial';
+  ctx.fillStyle = '#6b7280';
+  ctx.fillText(`Points: ${points} pts`, 28, 180);
+  ctx.fillText(`Time: ${elapsed}`, 28, 200);
+
+  // rank badge
+  ctx.fillStyle = '#fff7e6';
+  roundRect(ctx, w - 190, 28, 156, 36, 20, true, false);
+  ctx.fillStyle = '#b87f00';
+  ctx.font = '700 14px Inter, Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(rank, w - 112, 52);
+
+  // draw a score bar
+  const barX = 28, barY = 230, barW = w - 56, barH = 26;
+  // background bar
+  ctx.fillStyle = 'rgba(11,18,32,0.06)';
+  roundRect(ctx, barX, barY, barW, barH, 8, true, false);
+  // filled portion
+  const fillW = Math.max(2, Math.round((pct/100) * barW));
+  const arcGrad = ctx.createLinearGradient(barX,0,barX+barW,0);
+  arcGrad.addColorStop(0,'#fff8d6');
+  arcGrad.addColorStop(1,'#ffd700');
+  ctx.fillStyle = arcGrad;
+  roundRect(ctx, barX, barY, fillW, barH, 8, true, false);
+
+  // small footer text
+  ctx.font = '12px Inter, Arial';
+  ctx.fillStyle = '#6b7280';
+  ctx.textAlign = 'left';
+  ctx.fillText('Share this image with your friends or on socials!', 28, h - 18);
+}
+
+/* helper: rounded rectangle drawing */
+function roundRect(ctx, x, y, w, h, r, fill, stroke){
+  if (typeof stroke === 'undefined'){ stroke = true; }
+  if (typeof r === 'undefined') r = 5;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) { ctx.strokeStyle = 'rgba(11,18,32,0.04)'; ctx.stroke(); }
+}
+
+/* share behavior (tries to attach image file if supported) */
+shareBtn.addEventListener('click', async ()=>{
+  try{
+    // make sure canvas has latest image
+    const b = loadBest(); // not required but keep display in sync
+    // convert canvas to blob
+    if (!scoreCanvas) return;
+    scoreCanvas.toBlob(async (blob)=>{
+      if (!blob) {
+        // fallback: open image in new tab
+        const data = scoreCanvas.toDataURL('image/png');
+        window.open(data, '_blank');
+        return;
+      }
+      const filesArray = [ new File([blob], 'zama-quiz-score.png', { type: 'image/png' }) ];
+      const shareData = {
+        title: 'My Zama Quiz Score',
+        text: `I scored ${document.getElementById('iqNum').innerText} IQ on Zama Quiz!`,
+      };
+      // If navigator.canShare with files is available, share file directly (mobile/modern browsers)
+      if (navigator.canShare && navigator.canShare({ files: filesArray })) {
+        try {
+          await navigator.share({ ...shareData, files: filesArray });
+          return;
+        } catch (err) {
+          // ignore and fallback
+        }
+      }
+      // Fallback: open image in new tab and open twitter intent to let user upload manually
+      const data = scoreCanvas.toDataURL('image/png');
+      // open the image in new tab so user can save/upload
+      window.open(data, '_blank');
+
+      // open twitter compose with text (no attachment possible)
+      const text = encodeURIComponent(`${shareData.text}\nTry it: ${window.location.href} #Zama #FHE`);
+      window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+    }, 'image/png');
+  }catch(e){
+    // fallback: open twitter
+    const iq = document.getElementById('iqNum').innerText;
+    const encoded = encodeURIComponent(`I scored ${iq} IQ on the Zama Protocol Quiz! Try it: ${window.location.href} #Zama #FHE`);
+    window.open(`https://twitter.com/intent/tweet?text=${encoded}`,'_blank');
+  }
+});
+
+/* download score image */
+downloadImgBtn.addEventListener('click', ()=>{
+  if (!scoreCanvas) return;
+  const data = scoreCanvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = data;
+  a.download = 'zama-quiz-score.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 });
 
 /* retry: go back to intro so user can read intro again */
@@ -358,14 +764,49 @@ retryBtn.addEventListener('click', ()=>{
   resultBox.style.display = 'none';
   intro.style.display = '';
   progEl.style.width = '0%';
+  clearQuestionTimer();
+  if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
+});
+
+/* keyboard shortcuts:
+   - 1..4: choose option 1..4 (if shown)
+   - Enter: Next (when enabled) or Start (on intro)
+   - Space: Start when intro visible
+*/
+document.addEventListener('keydown', (e)=>{
+  // If intro visible, Enter or Space starts
+  const introVisible = intro && intro.style.display !== 'none';
+  const quizVisible = quizBox && quizBox.style.display !== 'none';
+  if (introVisible && (e.key === 'Enter' || e.key === ' ')){
+    e.preventDefault(); startQuiz();
+    return;
+  }
+  if (!quizVisible) return;
+
+  // number keys
+  if (/^[1-4]$/.test(e.key)){
+    const num = Number(e.key) - 1;
+    const opt = optsEl.children[num];
+    if (opt && !opt.classList.contains('disabled')){
+      e.preventDefault();
+      opt.click();
+    }
+    return;
+  }
+  if (e.key === 'Enter'){
+    if (!nextBtn.disabled){
+      e.preventDefault();
+      nextBtn.click();
+    }
+  }
 });
 
 /* initial state: show intro */
-intro.style.display = ''; 
+intro.style.display = '';
 quizBox.style.display = 'none';
 resultBox.style.display = 'none';
 
-/* particle motion (gentle) */
+/* helper: animate particles (gentle) */
 (function animateParticles(){
   const parts = document.querySelectorAll('.particle');
   parts.forEach((p,i)=>{
@@ -377,6 +818,14 @@ resultBox.style.display = 'none';
     ], { duration: dur*1000, iterations: Infinity, delay: i*400 });
   });
 })();
+
+/* small accessibility: Enter on start button works */
+startBtn.addEventListener('keyup', (e)=>{
+  if (e.key === 'Enter') startBtn.click();
+});
+startBtn.addEventListener('keypress', (e)=>{
+  if (e.key === 'Enter') startBtn.click();
+});
 </script>
 </body>
 </html>
